@@ -1,0 +1,34 @@
+<link rel="import" href="../polymer/polymer.html">
+
+<!--
+`zdkelt-pdf-viewer`
+a pdf viewer component
+
+@demo demo/index.html 
+-->
+
+<dom-module id="zdkelt-pdf-viewer">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Hello [[prop1]]</h2>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'zdkelt-pdf-viewer',
+
+      properties: {
+        prop1: {
+          type: String,
+          value: 'zdkelt-pdf-viewer',
+        },
+      },
+
+    });
+  </script>
+</dom-module>
