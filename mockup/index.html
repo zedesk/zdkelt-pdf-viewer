@@ -4,11 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mock PDF viewer</title>
-    <script src="../bower_components/pdfjs-dist/build/pdf.js"></script>
     <script src="../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+    <link rel="import" href="../bower_components/polymer/polymer.html">
     <link rel="import" href="../bower_components/paper-styles/color.html">
     <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
     <link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+    <link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+    <link rel="import" href="../pdfjs.html">
   </head>
   <body>
     <style is="custom-style">
@@ -20,6 +22,11 @@
       right:0;
       background: rgb(60, 60, 60);
       color: black;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
     }
     :root {
       --paper-fab-background: rgb(203, 203, 203);
@@ -36,34 +43,146 @@
       flex-direction: column;
     }
 
+    .pager {
+      position: absolute;
+      bottom: 0;
+      display: flex;
+      margin-bottom: 10px;
+    }
+
+    .pager div {
+      width: 100px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-family: roboto;
+    }
+
+    .container {
+      width: 100%;
+      flex: 1;
+      overflow: auto;
+      margin:10px;
+      margin-bottom:90px;
+    }
+
+    #spinner {
+      width: 100px;
+      height: 100px;
+      margin-top: 50%;
+      position: absolute;
+      left: calc( 50% - 50px );
+    }
     </style>
-    <canvas id="viewer"></canvas>
-    <div class="controls">
-      <paper-fab icon="fullscreen"></paper-fab>
-      <paper-fab icon="zoom-in"></paper-fab>
-      <paper-fab icon="zoom-out"></paper-fab>
-    </div>
+    <template id="app" is="dom-bind">
+      <div class="container" id="container">
+        <canvas id="viewer"></canvas>
+        <paper-spinner id="spinner" active></paper-spinner>
+      </div>
+      <div class="controls">
+        <paper-fab icon="fullscreen" on-tap="fit"></paper-fab>
+        <paper-fab icon="zoom-in" on-tap="zoomin"></paper-fab>
+        <paper-fab icon="zoom-out" on-tap="zoomout"></paper-fab>
+      </div>
+      <div class="pager">
+        <paper-fab icon="arrow-back" on-tap="previous"></paper-fab>
+        <div>{{page}}/{{nbPage}}</div>
+        <paper-fab icon="arrow-forward" on-tap="next"></paper-fab>
+      </div>
+
+      <script>
+      const app = document.querySelector("#app");
+      const canvas = document.getElementById("viewer");
+      app.PDF;
+      app.zoom = 1.0;
+      app.page = 1;
+      app.nbPage = '';
+      app.pageRendering = false;
+      app.pageNumPending = null;
+
+      PDFJS.getDocument('../data/20170221_PAR.pdf')
+       .then(pdf => {
+         app.nbPage = pdf.numPages;
+         app.PDF = pdf;
+         app.fit();
+       });
+
+       app.zoomin = () => {
+         app.zoom = app.zoom * 1.25;
+         app._drawPage();
+       }
 
 
+       app.zoomout = () => {
+         app.zoom = app.zoom / 1.25;
+         app._drawPage();
+       }
 
-    <script>
-    const canvas = document.getElementById("viewer");
-     PDFJS.getDocument('../data/20170220_PAR.pdf')
-     .then(pdf => {
-       console.log(`pages : ${pdf.numPages}`);
-       return pdf.getPage(1)
-     })
-     .then(page => {
-       const viewport = page.getViewport(1.0);
-       console.log(`pqge size : ${viewport.width}x${viewport.height}`);
-       canvas.height = viewport.height;
-       canvas.width = viewport.width;
-       const renderContext = {
-         canvasContext: canvas.getContext('2d'),
-         viewport: viewport
-       };
-       page.render(renderContext);
-     })
-    </script>
+       app.fit = () => {
+         app.PDF.getPage(app.page)
+         .then(page => {
+           let viewport = page.getViewport(1);
+           let rect = app.$.container.getBoundingClientRect();
+           app.zoom = Math.min(rect.width/viewport.width, rect.height/viewport.height);
+           app._drawPage();
+         })
+       }
+
+       app.fitWidth = () => {
+         app.PDF.getPage(app.page)
+         .then(page => {
+           let viewport = page.getViewport(1);
+           let rect = app.$.container.getBoundingClientRect();
+           app.zoom = rect.width/viewport.width;
+           app._drawPage();
+         })
+       }
+
+       app.next = () => {
+         if(app.page < app.nbPage) {
+           app.page++;
+         }
+         app._drawPage();
+       }
+
+       app.previous = () => {
+         if(app.page > 1) app.page--;
+         app._drawPage();
+       }
+
+       app._drawPage = (pg) => {
+         if(!pg) pg = app.page;
+         if(app.pageRendering) {
+           app.pageNumPending = pg
+           return;
+         }
+         app.pageRendering = true;
+         app.$.spinner.active = true;
+         app.PDF.getPage(pg)
+           .then( page => {
+             const viewport = page.getViewport(app.zoom);
+             canvas.width = viewport.width;
+             canvas.height = viewport.height;
+             const context = canvas.getContext('2d');
+             const renderContext = {
+               canvasContext: context,
+               viewport: viewport
+             };
+             return page.render(renderContext);
+           })
+           .then( () => {
+             app.pageRendering = false;
+             app.$.spinner.active = false;
+             if (app.pageNumPending !== null) {
+               // New page rendering is pending
+               app._drawPage(app.pageNumPending);
+               app.pageNumPending = null;
+             }
+           })
+       }
+      </script>
+    </template>
   </body>
 </html>
