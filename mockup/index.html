@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mock PDF viewer</title>
+    <script src="../bower_components/pdfjs-dist/build/pdf.js"></script>
+    <script src="../bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+    <link rel="import" href="../bower_components/paper-styles/color.html">
+    <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
+    <link rel="import" href="../bower_components/paper-fab/paper-fab.html">
+  </head>
+  <body>
+    <style is="custom-style">
+    body {
+      position: absolute;
+      top:0;
+      bottom:0;
+      left:0;
+      right:0;
+      background: rgb(60, 60, 60);
+      color: black;
+    }
+    :root {
+      --paper-fab-background: rgb(203, 203, 203);
+    }
+
+    paper-fab { color: black; margin:5px;}
+
+    .controls {
+      position: absolute;
+      right:0;
+      bottom: 0;
+      margin:20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    </style>
+    <canvas id="viewer"></canvas>
+    <div class="controls">
+      <paper-fab icon="fullscreen"></paper-fab>
+      <paper-fab icon="zoom-in"></paper-fab>
+      <paper-fab icon="zoom-out"></paper-fab>
+    </div>
+
+
+
+    <script>
+    const canvas = document.getElementById("viewer");
+     PDFJS.getDocument('../data/20170220_PAR.pdf')
+     .then(pdf => {
+       console.log(`pages : ${pdf.numPages}`);
+       return pdf.getPage(1)
+     })
+     .then(page => {
+       const viewport = page.getViewport(1.0);
+       console.log(`pqge size : ${viewport.width}x${viewport.height}`);
+       canvas.height = viewport.height;
+       canvas.width = viewport.width;
+       const renderContext = {
+         canvasContext: canvas.getContext('2d'),
+         viewport: viewport
+       };
+       page.render(renderContext);
+     })
+    </script>
+  </body>
+</html>
