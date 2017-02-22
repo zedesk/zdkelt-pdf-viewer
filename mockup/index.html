@@ -133,7 +133,7 @@
          .then(page => {
            let viewport = page.getViewport(1);
            let rect = app.$.container.getBoundingClientRect();
-           app.zoom = Math.min(rect.width/viewport.width, rect.height/viewport.height);
+           app.zoom = Math.min((rect.width-20)/viewport.width, (rect.height-20)/viewport.height);
            app._drawPage();
          })
        }
