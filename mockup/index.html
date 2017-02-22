@@ -178,7 +178,7 @@
                let rect = app.$.container.getBoundingClientRect();
                app.pos.x = (rect.width - canvas.width) / 2;
                app.pos.y = (rect.height - canvas.height) / 2;
-               canvas.style.transform = `translate(${app.pos.x}px,${-app.pos.y}px )`;
+               canvas.style.transform = `translate(${app.pos.x}px,${app.pos.y}px )`;
              }
 
              const context = canvas.getContext('2d');
@@ -192,6 +192,7 @@
              app.firstRender = true;
              app.pageRendering = false;
              app.$.spinner.active = false;
+             app._recenter();
              if (app.pageNumPending !== null) {
                // New page rendering is pending
                app._drawPage(app.pageNumPending);
@@ -208,20 +209,44 @@
            };
          };
          switch(evt.detail.state) {
-      case 'start':
-        app._trackPos = { x:evt.detail.x, y:evt.detail.y};
-        break;
-      case 'track':
-        tmp = getDiff(evt);
-        canvas.style.transform = `translate(${app.pos.x-tmp.x}px,${app.pos.y-tmp.y}px )`;
-        break;
-      case 'end':
-        tmp = getDiff(evt);
-        app.pos.x = app.pos.x-tmp.x;
-        app.pos.y = app.pos.y-tmp.y;
-        break;
-    }
-       }
+           case 'start':
+            app._trackPos = { x:evt.detail.x, y:evt.detail.y};
+            break;
+          case 'track':
+            tmp = getDiff(evt);
+            canvas.style.transform = `translate(${app.pos.x-tmp.x}px,${app.pos.y-tmp.y}px )`;
+            break;
+          case 'end':
+            tmp = getDiff(evt);
+            app.pos.x = app.pos.x-tmp.x;
+            app.pos.y = app.pos.y-tmp.y;
+            app._recenter();
+            break;
+        }
+      }
+
+      app._recenter = () => {
+        let rect = app.$.container.getBoundingClientRect();
+        if(rect.width > canvas.width) {
+          app.pos.x = (rect.width - canvas.width) / 2;
+        }
+        if(rect.height > canvas.height) {
+          app.pos.y = (rect.height - canvas.height) / 2;
+        }
+        if( rect.width < canvas.width && rect.width > canvas.width + app.pos.x + 50) {
+          app.pos.x = rect.width - 50 - canvas.width;
+        }
+        if( rect.width < canvas.width && app.pos.x > 50 ) {
+          app.pos.x = 50
+        }
+        if( rect.height < canvas.height && rect.height > canvas.height + app.pos.y + 50) {
+          app.pos.y = rect.height - 50 - canvas.height;
+        }
+        if( rect.height < canvas.height && app.pos.y > 50 ) {
+          app.pos.y = 50
+        }
+        canvas.style.transform = `translate(${app.pos.x}px,${app.pos.y}px )`;
+      }
       </script>
     </template>
   </body>
