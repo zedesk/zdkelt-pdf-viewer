@@ -63,9 +63,14 @@
     .container {
       width: 100%;
       flex: 1;
-      overflow: auto;
+      overflow: hidden;
       margin:10px;
       margin-bottom:90px;
+      position:relative;
+    }
+    canvas {
+      display: block;
+      margin: 0;
     }
 
     #spinner {
@@ -73,12 +78,13 @@
       height: 100px;
       margin-top: 50%;
       position: absolute;
+      top:0;
       left: calc( 50% - 50px );
     }
     </style>
     <template id="app" is="dom-bind">
-      <div class="container" id="container">
-        <canvas id="viewer"></canvas>
+      <div class="container" id="container" on-track="_handleTrack">
+        <canvas id="viewer" width="0" height="0"></canvas>
         <paper-spinner id="spinner" active></paper-spinner>
       </div>
       <div class="controls">
@@ -101,6 +107,8 @@
       app.nbPage = '';
       app.pageRendering = false;
       app.pageNumPending = null;
+      app.pos = {x:0, y:0};
+      app.firstRender = false;
 
       PDFJS.getDocument('../data/20170221_PAR.pdf')
        .then(pdf => {
@@ -165,6 +173,14 @@
              const viewport = page.getViewport(app.zoom);
              canvas.width = viewport.width;
              canvas.height = viewport.height;
+
+             if(!app.firstRender) {
+               let rect = app.$.container.getBoundingClientRect();
+               app.pos.x = (rect.width - canvas.width) / 2;
+               app.pos.y = (rect.height - canvas.height) / 2;
+               canvas.style.transform = `translate(${app.pos.x}px,${-app.pos.y}px )`;
+             }
+
              const context = canvas.getContext('2d');
              const renderContext = {
                canvasContext: context,
@@ -173,6 +189,7 @@
              return page.render(renderContext);
            })
            .then( () => {
+             app.firstRender = true;
              app.pageRendering = false;
              app.$.spinner.active = false;
              if (app.pageNumPending !== null) {
@@ -181,6 +198,29 @@
                app.pageNumPending = null;
              }
            })
+       }
+
+       app._handleTrack = (evt) => {
+         getDiff = (evt) => {
+           return {
+             x: app._trackPos.x - evt.detail.x,
+             y: app._trackPos.y -  evt.detail.y,
+           };
+         };
+         switch(evt.detail.state) {
+      case 'start':
+        app._trackPos = { x:evt.detail.x, y:evt.detail.y};
+        break;
+      case 'track':
+        tmp = getDiff(evt);
+        canvas.style.transform = `translate(${app.pos.x-tmp.x}px,${app.pos.y-tmp.y}px )`;
+        break;
+      case 'end':
+        tmp = getDiff(evt);
+        app.pos.x = app.pos.x-tmp.x;
+        app.pos.y = app.pos.y-tmp.y;
+        break;
+    }
        }
       </script>
     </template>
