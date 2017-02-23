@@ -10,6 +10,7 @@
     <link rel="import" href="../bower_components/iron-icons/iron-icons.html">
     <link rel="import" href="../bower_components/paper-fab/paper-fab.html">
     <link rel="import" href="../bower_components/paper-spinner/paper-spinner.html">
+    <link rel="import" href="../bower_components/paper-tooltip/paper-tooltip.html">
     <link rel="import" href="../pdfjs.html">
   </head>
   <body>
@@ -30,6 +31,10 @@
     }
     :root {
       --paper-fab-background: rgb(203, 203, 203);
+      --paper-tooltip: {
+        font-size:12px;
+        font-family: Roboto;
+      }
     }
 
     paper-fab { color: black; margin:5px;}
@@ -88,14 +93,27 @@
         <paper-spinner id="spinner" active></paper-spinner>
       </div>
       <div class="controls">
-        <paper-fab icon="fullscreen" on-tap="fit"></paper-fab>
-        <paper-fab icon="zoom-in" on-tap="zoomin"></paper-fab>
-        <paper-fab icon="zoom-out" on-tap="zoomout"></paper-fab>
+        <div>
+          <paper-fab mini icon="fullscreen" on-tap="fit"></paper-fab>
+          <paper-tooltip position="left">Fit page</paper-tooltip>
+        </div>
+        <div>
+          <paper-fab mini icon="fullscreen-exit" on-tap="fitWidth"></paper-fab>
+          <paper-tooltip position="left">Fit page width</paper-tooltip>
+        </div>
+        <div>
+          <paper-fab mini icon="zoom-in" on-tap="zoomin"></paper-fab>
+          <paper-tooltip position="left">Zoom in</paper-tooltip>
+        </div>
+        <div>
+          <paper-fab mini icon="zoom-out" on-tap="zoomout"></paper-fab>
+          <paper-tooltip position="left">Zoom out</paper-tooltip>
+        </div>
       </div>
       <div class="pager">
-        <paper-fab icon="arrow-back" on-tap="previous"></paper-fab>
+        <paper-fab mini icon="arrow-back" on-tap="previous"></paper-fab>
         <div>{{page}}/{{nbPage}}</div>
-        <paper-fab icon="arrow-forward" on-tap="next"></paper-fab>
+        <paper-fab mini icon="arrow-forward" on-tap="next"></paper-fab>
       </div>
 
       <script>
@@ -143,7 +161,7 @@
          .then(page => {
            let viewport = page.getViewport(1);
            let rect = app.$.container.getBoundingClientRect();
-           app.zoom = rect.width/viewport.width;
+           app.zoom = (rect.width-20)/viewport.width;
            app._drawPage();
          })
        }
