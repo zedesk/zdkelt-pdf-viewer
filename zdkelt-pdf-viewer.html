@@ -1,20 +1,49 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../paper-spinner/paper-spinner.html">
+<link rel="import" href="./pdfjs.html">
 
 <!--
 `zdkelt-pdf-viewer`
 a pdf viewer component
 
-@demo demo/index.html 
+@demo demo/index.html
 -->
 
 <dom-module id="zdkelt-pdf-viewer">
   <template>
     <style>
       :host {
+        position:relative;
+        display: flex;
+        background: rgb(60, 60, 60);
+        flex-direction: column;
+      }
+      .container {
+        /*width: 100%;*/
+        flex: 1;
+        overflow: hidden;
+        /*margin:10px;*/
+        /*margin-bottom:90px;*/
+        position:relative;
+        /*background: tomato;*/
+      }
+      canvas {
         display: block;
+        margin: 0;
+      }
+      paper-spinner {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        margin-top: 50%;
+        top:0;
+        left: calc( 50% - 50px );
       }
     </style>
-    <h2>Hello [[prop1]]</h2>
+    <div class="container" id="container" on-track="_handleTrack">
+      <canvas id="viewer" width="0" height="0"></canvas>
+      <paper-spinner id="spinner" active></paper-spinner>
+    </div>
   </template>
 
   <script>
@@ -27,7 +56,204 @@ a pdf viewer component
           type: String,
           value: 'zdkelt-pdf-viewer',
         },
+        src: {
+          type: String,
+          observer: '_srcChanged',
+        },
+        zoom: {
+          type: Number,
+          value: 1,
+        },
+        page: {
+          type: Number,
+          value: 1,
+          observer: '_pageChanged',
+          reflectToAttribute: true,
+          notify: true,
+        },
+        pages: {
+          type: Number,
+          readOnly: true,
+          reflectToAttribute: true,
+          notify: true,
+        },
+        initialView: {
+          type: String,
+          value: "fit",
+        },
+        _PDF: {
+          type: Object,
+          value: () => { return {}; },
+        },
+        _pageRendering: {
+          type: Boolean,
+          value: false,
+        },
+        _pageNumPending: {
+          type: Number,
+          value: null,
+        },
+        _firstRender: {
+          type: Boolean,
+          value: false,
+        },
+        _pos: {
+          type: Object,
+          value: () => { return {x:0, y:0} },
+        }
       },
+
+      _srcChanged() {
+        this.firstRender = false;
+        PDFJS.getDocument(this.src)
+         .then(pdf => {
+           this._setPages(pdf.numPages);
+           this._PDF = pdf;
+           switch(this.initialView) {
+             case "fit-width":
+              this.fitWidth();
+              break;
+            default:
+              this.fit();
+           }
+         });
+      },
+
+      _pageChanged() {
+        if( this.page <= this.pages ) this._drawPage();
+      },
+
+      next() {
+        if(this.page < this.pages) this.page++;
+      },
+
+      previous() {
+        if(this.page > 1) this.page--;
+      },
+
+      fitWidth() {
+        this._PDF.getPage(this.page)
+        .then(page => {
+          let viewport = page.getViewport(1);
+          let rect = this.$.container.getBoundingClientRect();
+          this.zoom = (rect.width-20)/viewport.width;
+          if(!this._firstRender) {
+            viewport = page.getViewport(this.zoom);
+            this._pos.x = (rect.width - viewport.width) / 2;
+            this._pos.y = 10;
+            this.$.viewer.style.transform = `translate(${this._pos.x}px,${this._pos.y}px )`;
+          }
+          this._drawPage();
+        })
+      },
+
+      fit() {
+        this._PDF.getPage(this.page)
+        .then(page => {
+          let viewport = page.getViewport(1);
+          let rect = this.$.container.getBoundingClientRect();
+          this.zoom = Math.min((rect.width-20)/viewport.width, (rect.height-20)/viewport.height);
+          if(!this._firstRender) {
+            viewport = page.getViewport(this.zoom);
+            this._pos.x = (rect.width - viewport.width) / 2;
+            this._pos.y = (rect.height - viewport.height) / 2;
+            this.$.viewer.style.transform = `translate(${this._pos.x}px,${this._pos.y}px )`;
+          }
+          this._drawPage();
+        })
+      },
+
+      zoomin() {
+        this.zoom = this.zoom * 1.25;
+        this._drawPage();
+      },
+
+      zoomout() {
+        this.zoom = this.zoom / 1.25;
+        this._drawPage();
+      },
+
+      _drawPage(pg) {
+        if(!pg) pg = this.page;
+        if(this._pageRendering) {
+          this._pageNumPending = pg
+          return;
+        }
+        this._pageRendering = true;
+        this.$.spinner.active = true;
+        this._PDF.getPage(pg)
+          .then( page => {
+            const viewport = page.getViewport(this.zoom);
+            this.$.viewer.width = viewport.width;
+            this.$.viewer.height = viewport.height;
+
+            const context = this.$.viewer.getContext('2d');
+            const renderContext = {
+              canvasContext: context,
+              viewport: viewport
+            };
+            return page.render(renderContext);
+          })
+          .then( () => {
+            this._firstRender = true;
+            this._pageRendering = false;
+            this.$.spinner.active = false;
+            this._recenter();
+            if (this._pageNumPending !== null) {
+              // New page rendering is pending
+              this._drawPage(this._pageNumPending);
+              this._pageNumPending = null;
+            }
+          })
+      },
+
+      _handleTrack(evt) {
+        getDiff = (evt) => {
+          return {
+            x: this._trackPos.x - evt.detail.x,
+            y: this._trackPos.y -  evt.detail.y,
+          };
+        };
+        switch(evt.detail.state) {
+          case 'start':
+           this._trackPos = { x:evt.detail.x, y:evt.detail.y};
+           break;
+         case 'track':
+           tmp = getDiff(evt);
+           this.$.viewer.style.transform = `translate(${this._pos.x-tmp.x}px,${this._pos.y-tmp.y}px )`;
+           break;
+         case 'end':
+           tmp = getDiff(evt);
+           this._pos.x = this._pos.x-tmp.x;
+           this._pos.y = this._pos.y-tmp.y;
+           this._recenter();
+           break;
+       }
+     },
+
+      _recenter() {
+        let rect = this.$.container.getBoundingClientRect();
+        const canvas = this.$.viewer;
+        if(rect.width > canvas.width) {
+          this._pos.x = (rect.width - canvas.width) / 2;
+        }
+        if(rect.height > canvas.height) {
+          this._pos.y = (rect.height - canvas.height) / 2;
+        }
+        if( rect.width < canvas.width && rect.width > canvas.width + this._pos.x + 50) {
+          this._pos.x = rect.width - 50 - canvas.width;
+        }
+        if( rect.width < canvas.width && this._pos.x > 50 ) {
+          this._pos.x = 50
+        }
+        if( rect.height < canvas.height && rect.height > canvas.height + this._pos.y + 50) {
+          this._pos.y = rect.height - 50 - canvas.height;
+        }
+        if( rect.height < canvas.height && this._pos.y > 50 ) {
+          this._pos.y = 50
+        }
+        canvas.style.transform = `translate(${this._pos.x}px,${this._pos.y}px )`;
+      }
 
     });
   </script>
