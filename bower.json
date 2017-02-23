@@ -1,13 +1,14 @@
 {
   "name": "zdkelt-pdf-viewer",
   "description": "a pdf viewer component",
-  "version":"0.0.1",
+  "version": "0.0.1",
   "main": "zdkelt-pdf-viewer.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0",
     "pdfjs-dist": "^1.7.310",
     "paper-styles": "PolymerElements/paper-styles#^1.1.5",
-    "paper-spinner": "PolymerElements/paper-spinner#^1.2.1"
+    "paper-spinner": "PolymerElements/paper-spinner#^1.2.1",
+    "resize-observer-polyfill": "^1.4.1"
   },
   "devDependencies": {
     "iron-icons": "PolymerElements/iron-icons#^1.2.0",
@@ -16,6 +17,11 @@
     "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
     "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^1.0.0",
     "web-component-tester": "^4.0.0",
-    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0"
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^0.7.0",
+    "paper-dropdown-menu": "PolymerElements/paper-dropdown-menu#^1.5.0",
+    "paper-listbox": "PolymerElements/paper-listbox#^1.1.2",
+    "paper-item": "PolymerElements/paper-item#^1.2.1",
+    "iron-ajax": "PolymerElements/iron-ajax#^1.4.3",
+    "paper-radio-group": "PolymerElements/paper-radio-group#^1.2.1"
   }
 }
