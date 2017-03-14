@@ -1,5 +1,8 @@
 # \<zdkelt-pdf-viewer\>
 
+__Deprecated :__ I've finally publish the component in my company repository : https://github.com/telecomsante/pdf-viewer
+
+
 a pdf viewer component
 
 ## Install the Polymer-CLI
